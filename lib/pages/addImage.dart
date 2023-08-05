@@ -1,0 +1,264 @@
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
+import '../model/image_data.dart';
+import '../services/database_helper.dart';
+import '../services/firebase_service.dart';
+
+class AddImagePage extends StatefulWidget {
+  @override
+  _AddImageState createState() => _AddImageState();
+}
+
+class _AddImageState extends State<AddImagePage> {
+  late List<ImageData> localImages = [];
+  late List<ImageData> firestoreImages = [];
+  List<ImageData> filteredImages = [];
+  final TextEditingController titleController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
+  String? selectedCategory; // Use nullable type for selectedCategory
+
+  // Define the list of categories
+  final List<String> categories = [
+    'Documents',
+    'Files',
+    'Keys',
+  ];
+
+  // Future<void> pickImage(ImageSource source) async {
+  //   final pickedFile = await ImagePicker().pickImage(source: source);
+  //   if (pickedFile != null) {
+  //     final imageBytes = await pickedFile.readAsBytes();
+  //     final compressedFile = await compressImage(imageBytes);
+  //     final localUserData = await DatabaseHelper.instance.getUserData();
+  //     final newImage = ImageData(
+  //       id: const Uuid().v4(),
+  //       userId: localUserData!.id,
+  //       title: titleController.text,
+  //       description: descriptionController.text,
+  //       category: selectedCategory ?? "", // Set the selected category for the new image
+  //       imageData: Uint8List.fromList(compressedFile),
+  //     );
+
+  //     // Save image to local database
+  //     await DatabaseHelper.instance.insertImage(newImage);
+  //     if (mounted) {
+  //       setState(() {
+  //         localImages.add(newImage);
+  //         filteredImages = localImages;
+  //       });
+  //     }
+  //     // Save image to firebase if setting enabled
+  //     var switchState = await getSwitchState();
+  //     if (switchState == true) {
+  //       await FirestoreService.instance.addImageToFirestore(newImage);
+  //     }
+  //     // Clear the text fields after saving
+  //     titleController.clear();
+  //     descriptionController.clear();
+  //     Navigator.pushReplacementNamed(context, '/imageSyncScreen');
+  //   }
+  // }
+
+  Future<Uint8List> compressImage(Uint8List imageBytes) async {
+    int quality = 50; // You can adjust the quality as per your requirements (0 to 100)
+    var result = await FlutterImageCompress.compressWithList(
+      imageBytes,
+      quality: quality,
+    );
+    return Uint8List.fromList(result);
+  }
+
+  Future<bool> getSwitchState() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool? switchState = prefs.getBool('isSwitched');
+    if (switchState != null) {
+      return switchState;
+    } else {
+      return false;
+    }
+  }
+
+  Uint8List? uploadedImageBytes; // Store the uploaded image bytes in a variable
+
+  Future<void> uploadImage(ImageSource source) async {
+    final pickedFile = await ImagePicker().pickImage(source: source);
+    if (pickedFile != null) {
+      final imageBytes = await pickedFile.readAsBytes();
+      final compressedFile = await compressImage(imageBytes);
+
+      // Set the uploadedImageBytes to the compressed image bytes
+      setState(() {
+        uploadedImageBytes = Uint8List.fromList(compressedFile);
+      });
+    }
+  }
+
+  void saveRecord() async {
+    if (uploadedImageBytes == null) {
+      // Handle the case where the user didn't upload an image yet
+      // You can show a dialog or a snackbar to inform the user to upload an image first.
+      return;
+    }
+
+    final localUserData = await DatabaseHelper.instance.getUserData();
+    final newImage = ImageData(
+      id: const Uuid().v4(),
+      userId: localUserData!.id,
+      title: titleController.text,
+      description: descriptionController.text,
+      category: selectedCategory ?? "",
+      imageData: uploadedImageBytes!, // Use the uploaded image bytes to save the record
+    );
+
+    // Save image to local database
+    await DatabaseHelper.instance.insertImage(newImage);
+
+    if (mounted) {
+      setState(() {
+        localImages.add(newImage);
+        filteredImages = localImages;
+      });
+    }
+
+    // Save image to firebase if setting enabled
+    var switchState = await getSwitchState();
+    if (switchState == true) {
+      await FirestoreService.instance.addImageToFirestore(newImage);
+    }
+
+    // Clear the text fields after saving
+    titleController.clear();
+    descriptionController.clear();
+
+    // Navigate back to the main screen
+    // Navigator.pop(context);
+    Navigator.pushReplacementNamed(context, '/imageSyncScreen');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Add"),
+        backgroundColor: const Color.fromARGB(255, 6, 173, 137),
+      ),
+      body: Container(
+        padding: const EdgeInsets.only(left: 10, right: 10),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Theme(
+                data: Theme.of(context).copyWith(
+                  textSelectionTheme: const TextSelectionThemeData(
+                    cursorColor: Color.fromARGB(255, 6, 173, 137),
+                  ),
+                ),
+                child: TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Title',
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Color.fromARGB(255, 6, 173, 137)),
+                    ),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                    labelStyle: TextStyle(color: Color.fromARGB(255, 6, 173, 137)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Theme(
+                data: Theme.of(context).copyWith(
+                  textSelectionTheme: const TextSelectionThemeData(
+                    cursorColor: Color.fromARGB(255, 6, 173, 137),
+                  ),
+                ),
+                child: TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Color.fromARGB(255, 6, 173, 137)),
+                    ),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                    labelStyle: TextStyle(color: Color.fromARGB(255, 6, 173, 137)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Drop-down menu for selecting the category
+              // Drop-down menu for selecting the category
+              DropdownButtonFormField<String>(
+                value: selectedCategory,
+                decoration: const InputDecoration(
+                  labelText: 'Category',
+                  labelStyle: TextStyle(color: Color.fromARGB(255, 6, 173, 137)),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Color.fromARGB(255, 6, 173, 137)),
+                  ),
+                ),
+                onChanged: (newValue) {
+                  setState(() {
+                    selectedCategory = newValue;
+                  });
+                },
+                items: categories.map<DropdownMenuItem<String>>((String category) {
+                  return DropdownMenuItem<String>(
+                    value: category,
+                    child: Text(category),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 6, 173, 137)),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Text('Pick Image'),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              uploadImage(ImageSource.camera);
+                            },
+                            child: const Text('Camera'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              uploadImage(ImageSource.gallery);
+                            },
+                            child: const Text('Gallery'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+                child: const Text('Pick Image'),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 6, 173, 137)),
+                onPressed: uploadedImageBytes != null ? saveRecord : null,
+                child: const Text('Save'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "870267699571",
+    "project_id": "rememberme-9713c",
+    "storage_bucket": "rememberme-9713c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:870267699571:android:75bbc129d9cf59a1154506",
+        "android_client_info": {
+          "package_name": "com.jnoor.rememberme"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "870267699571-frcbcssqrgtro3sbsmjp0hbjg6305fam.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkSSp_NhD4-RPZem9Z9tUApx_ebG9iMw4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "870267699571-frcbcssqrgtro3sbsmjp0hbjg6305fam.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
