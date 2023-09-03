@@ -19,7 +19,8 @@ class DatabaseHelper {
 
   Future<User?> getUserData() async {
     final db = await database;
-    final localuser = await AuthService().getCurrentEmailFromSharedPreferences();
+    final localuser =
+        await AuthService().getCurrentEmailFromSharedPreferences();
     final result = await db.query(
       'users',
       where: 'email = ?',
@@ -53,7 +54,8 @@ class DatabaseHelper {
       sqfliteFfiInit();
     }
 
-    final database = await openDatabase(dbPath, version: 1, onCreate: (Database db, int version) async {
+    final database = await openDatabase(dbPath, version: 1,
+        onCreate: (Database db, int version) async {
       await db.execute('''
         CREATE TABLE images(
           id TEXT PRIMARY KEY,
@@ -61,7 +63,8 @@ class DatabaseHelper {
           title TEXT,
           description TEXT,
           category TEXT,
-          imageData BLOB
+          imageData BLOB,
+          date TEXT
         )
       ''');
 
@@ -199,5 +202,13 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [userId],
     );
+  }
+
+  Future<bool> hasPin() async {
+    final db = await database;
+    final user = await getUserData();
+
+    // Check if the user has a PIN set
+    return user != null && user.pin != null && user.pin!.isNotEmpty;
   }
 }

@@ -6,14 +6,39 @@ import 'package:rememberme/pages/login.dart';
 import 'package:rememberme/pages/payment.dart';
 import 'package:rememberme/pages/pinSetupPage.dart';
 import 'package:rememberme/pages/register.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest_10y.dart';
 
+FlutterLocalNotificationsPlugin notificationsPlugin =
+    FlutterLocalNotificationsPlugin();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  initializeTimeZones();
+  AndroidInitializationSettings androidSettings =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  DarwinInitializationSettings iosSettings = DarwinInitializationSettings(
+    requestAlertPermission: true,
+    requestBadgePermission: true,
+    requestCriticalPermission: true,
+    requestSoundPermission: true,
+  );
+
+  InitializationSettings initializationSettings = InitializationSettings(
+    android: androidSettings,
+    iOS: iosSettings,
+  );
+
+  bool? initilized =
+      await notificationsPlugin.initialize(initializationSettings);
+
+  print("Notification check: $initilized");
+
   runApp(
     MyApp(),
   );

@@ -8,6 +8,8 @@ class ImageData {
   final String description;
   final String category;
   final Uint8List imageData;
+  final String date;
+  int? notificationId;
 
   ImageData({
     required this.id,
@@ -16,28 +18,47 @@ class ImageData {
     required this.description,
     required this.category,
     required this.imageData,
+    required this.date,
+    this.notificationId,
   });
 
   factory ImageData.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    final Uint8List imageData = data['imageData'].bytes;
+    // final Uint8List imageData = data['imageData'].bytes;
+
+    // Check if 'imageData' exists in the data map
+    final Uint8List? imageDataBytes = data['imageData']?.bytes;
+
+    // Convert Timestamp to DateTime for the 'date' field
+    final Timestamp timestamp = data['date'];
+    final DateTime date = timestamp.toDate();
+
     return ImageData(
       id: doc.id,
       userId: data['userId'],
       title: data['title'],
       description: data['description'],
       category: data['category'],
-      imageData: imageData,
+      imageData: imageDataBytes ??
+          Uint8List(0), // Set to empty Uint8List if imageDataBytes is null
+      date: date.toString(), // Convert DateTime to string
     );
   }
 
   Map<String, dynamic> toFirestore() {
+    // Convert date string to DateTime object
+    DateTime? formattedDate;
+    if (date.isNotEmpty) {
+      formattedDate = DateTime.parse(date);
+    }
+
     return {
       'userId': userId,
       'title': title,
       'description': description,
       'category': category,
       'imageData': Blob(imageData),
+      'date': formattedDate != null ? Timestamp.fromDate(formattedDate) : null,
     };
   }
 
@@ -50,6 +71,7 @@ class ImageData {
       description: map['description'],
       category: map['category'],
       imageData: imageData,
+      date: map['date'],
     );
   }
 
@@ -61,6 +83,7 @@ class ImageData {
       'description': description,
       'category': category,
       'imageData': Uint8List.fromList(imageData),
+      'date': date, // Save the field to the database
     };
   }
 }
